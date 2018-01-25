@@ -1,6 +1,6 @@
 # json-briefing
 
-[![NPM](https://nodei.co/npm/stealthlog.png?downloads=true&downloadRank=true)](https://nodei.co/npm/stealthlog/)
+[![NPM](https://nodei.co/npm/json-briefing.png?downloads=true&downloadRank=true)](https://nodei.co/npm/json-briefing/)
 
 ## Motivation
 
