@@ -1,0 +1,21 @@
+{
+  "name": "json-briefing",
+  "version": "0.1.0",
+  "description": "a simple cli tool witch can generate an analyse file from rules against a json file",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arfost/json-briefing.git"
+  },
+  "keywords": [
+    "json", "explore", "analyse", "parse", "data quality"
+  ],
+  "author": "arfost",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.13.0"
+  },
+  "bin": {
+    "generate-json-briefing": "index.js"
+  }
+}
