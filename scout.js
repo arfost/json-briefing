@@ -39,7 +39,6 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
     for (let itc of baseConf.idToConstruct) {
         if (itc.url) {
             let ids = await returnNode(itc.url);
-            console.log(ids)
             preparedConf.constructedId[itc.name] = Object.keys(ids)
         } else {
             let ids = require(itc.path);
@@ -97,9 +96,24 @@ const analysis = async (config) => {
     return results;
 }
 
-const formatResult = (results, config, outName) => {
-    if(!outName)
-        outName = "brief-"+new Date().getTime()+".json"
+const fanalysis = async (path, mode, discardLower, outname="fanalysis-"+new Date().getTime()+".json") => {
+    console.log("beginning frequency analysis")
+    let base
+    if (mode === "local") {
+        base = require(path);
+    } else {
+        base = await returnNode(path);
+    }
+
+    console.log("\t base retrieved, analysing");
+    let frequencies = {};
+    countNodeFrequency(base, frequencies, []);
+    console.log("\t frequencies counted, cleaning lower than "+discardLower+" and exporting results");
+    fs.writeFileSync(outname, JSON.stringify(cleanFrequencies(frequencies, discardLower), null, 4));
+    console.log("\t file "+outname+ " exported successfully");
+}
+
+const formatResult = (results, config, outName="brief-"+new Date().getTime()+".json") => {
 
     for (let nodeName in results) {
         let node = results[nodeName];
@@ -118,7 +132,7 @@ const formatResult = (results, config, outName) => {
     fs.writeFileSync(outName, JSON.stringify(results, null, 4))
 }
 
-module.exports = { prepareAnalysis, analysis, formatResult }
+module.exports = { prepareAnalysis, analysis, formatResult, fanalysis }
 
 
 //analysis support functions
@@ -206,6 +220,27 @@ const getNewNodePath = (nodeName, subNodeName, config) => {
     return (nodeName + "/" + "*")
 }
 
+//frequency analysis support functions
+const countNodeFrequency = (node, frequencies, parentsNodes)=>{
+    for (let subNodeName in node){
+        if(typeof node[subNodeName] === 'object'){
+            for(let oldNode of parentsNodes){
+                frequencies[oldNode] ? frequencies[oldNode] ++ : frequencies[oldNode] = 1;
+            }
+            countNodeFrequency(node[subNodeName], frequencies, [...parentsNodes, subNodeName]);
+        }
+    }
+}
+
+const cleanFrequencies = (frequencies, min)=>{
+    let results = {}
+    for (let node in frequencies){
+        if(frequencies[node] >= min){
+            results[frequencies[node]] ? results[frequencies[node]].push(node) : results[frequencies[node]] = [node]
+        }
+    }
+    return results;
+}
 
 //general support function
 function returnNode(url) {
