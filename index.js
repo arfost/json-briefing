@@ -3,6 +3,7 @@
 const program = require('commander');
 // Require logic.js file and extract controller functions using JS destructuring assignment
 const { prepareAnalysis, analysis, formatResult, fanalysis } = require('./scout.js');
+const { configFromFrequencies } = require('./analyst.js');
 
 const packageInfo = require('./package.json')
 
@@ -39,11 +40,12 @@ program
 
 
     program
-    .command('create_config <pathToFile>')
+    .command('create_config <pathToFrequenciesFile>')
     .alias('cc')
+    .option('-o, --outname <name>', 'specify an output file name')
     .description('Ask a suite of questions to help generate a config file from a frequecy analysis result file.')
     .action((...args) => {
-        frenquencyCommand(...args).catch(err => {
+        confFromFrequencies(...args).catch(err => {
             console.error(err)
         })
     });
@@ -56,7 +58,11 @@ const analyseCommand = async (configPath, maxReject, maxExampleValues, cmd) => {
 
 }
 
-const frenquencyCommand = async (path, cmd, test="fanalysis-"+new Date().getTime()) => {
-    fanalysis(path, cmd.mode, cmd.discardLower, cmd.outname)
+const frenquencyCommand = async (path, cmd) => {
+    await fanalysis(path, cmd.outname, cmd.discardLower, cmd.outname)
+}
+
+const confFromFrequencies = async (path, cmd) => {
+    await configFromFrequencies(path, cmd.outname)
 }
 program.parse(process.argv);

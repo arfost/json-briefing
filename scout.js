@@ -225,12 +225,22 @@ const countNodeFrequency = (node, frequencies, parentsNodes)=>{
     for (let subNodeName in node){
         if(typeof node[subNodeName] === 'object'){
             for(let oldNode of parentsNodes){
-                frequencies[oldNode] ? frequencies[oldNode] ++ : frequencies[oldNode] = 1;
+                frequencies[oldNode] ? frequencies[oldNode] += 1 : frequencies[oldNode] = 1;
             }
             countNodeFrequency(node[subNodeName], frequencies, [...parentsNodes, subNodeName]);
         }
     }
 }
+
+// //frequency analysis support functions
+// const countNodeFrequency = (node, frequencies, parentsNodes)=>{
+//     for (let subNodeName in node){
+//         if(typeof node[subNodeName] === 'object'){
+//             frequencies[parentsNodes] ? frequencies[parentsNodes] += 1 : frequencies[oldNode] = 1;
+//             countNodeFrequency(node[subNodeName], frequencies, subNodeName);
+//         }
+//     }
+// }
 
 const cleanFrequencies = (frequencies, min)=>{
     let results = {}

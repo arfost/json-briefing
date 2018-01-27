@@ -8,14 +8,19 @@
     "url": "git+https://github.com/arfost/json-briefing.git"
   },
   "keywords": [
-    "json", "explore", "analyse", "parse", "data quality"
+    "json",
+    "explore",
+    "analyse",
+    "parse",
+    "data quality"
   ],
   "author": "arfost",
   "license": "MIT",
   "dependencies": {
-    "commander": "^2.13.0"
+    "commander": "^2.13.0",
+    "inquirer": "^5.0.1"
   },
   "bin": {
-    "generate-json-briefing": "index.js"
+    "json-briefing": "index.js"
   }
 }
