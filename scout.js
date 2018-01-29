@@ -35,45 +35,57 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
     console.log('\t pathParts found, minimal config OK, checking additional infos')
 
     preparedConf.constructedId = {}
-    let itcs = []
-    for (let itc of baseConf.idToConstruct) {
-        if (itc.url) {
-            let ids = await returnNode(itc.url);
-            preparedConf.constructedId[itc.name] = Object.keys(ids)
-        } else {
-            let ids = require(itc.path);
-            preparedConf.constructedId[itc.name] = Object.keys(ids)
+    if(baseConf.idToConstruct){
+        for (let itc of baseConf.idToConstruct) {
+            if (itc.url) {
+                let ids = await returnNode(itc.url);
+                preparedConf.constructedId[itc.name] = Object.keys(ids)
+            } else {
+                let ids = require(itc.path);
+                preparedConf.constructedId[itc.name] = Object.keys(ids)
+            }
         }
+        console.log('\t ids reference constructed')
     }
-    console.log('\t ids reference constructed')
+    
 
     preparedConf.badPaths = {}
-    for (let path of baseConf.badPaths) {
-        preparedConf.badPaths[path] = {
-            reject: [],
-            rejectCount: 0
-        };
+    if(baseConf.badPaths){
+        for (let path of baseConf.badPaths) {
+            preparedConf.badPaths[path] = {
+                reject: [],
+                rejectCount: 0
+            };
+        }
+        console.log('\t badPaths constructed')
     }
-    console.log('\t badPaths constructed')
+    
+    
 
     preparedConf.nodeOnlyPaths = {}
-    for (let path of baseConf.nodeOnlyPaths) {
-        preparedConf.nodeOnlyPaths[path] = {
-            reject: [],
-            rejectCount: 0
-        };
+    if(baseConf.nodeOnlyPaths){
+        for (let path of baseConf.nodeOnlyPaths) {
+            preparedConf.nodeOnlyPaths[path] = {
+                reject: [],
+                rejectCount: 0
+            };
+        }
+        console.log('\t nodeOnlyPaths constructed')
     }
-    console.log('\t nodeOnlyPaths constructed')
+    
 
     preparedConf.rules = {}
-    for (let rule of baseConf.rules) {
-        preparedConf.rules[rule.path] = {
-            rule: rule.rule,
-            reject: [],
-            rejectCount: 0
-        };
+    if(baseConf.nodeOnlyPaths){
+        for (let rule of baseConf.rules) {
+            preparedConf.rules[rule.path] = {
+                rule: rule.rule,
+                reject: [],
+                rejectCount: 0
+            };
+        }
+        console.log('\t rules constructed')
     }
-    console.log('\t rules constructed')
+    
     preparedConf.maxReject = maxReject;
     preparedConf.maxExampleValues = maxExampleValues;
 

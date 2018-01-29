@@ -15,7 +15,6 @@ const configFromFrequencies = async (path, outputFile = "config-" + new Date().g
     let stopLoader = allLoader("Processing frequencies")
     let intervals = findIntervalsFromFrequencies(frequencies, answers.numeric)
 
-    let message = cffMessInterval(intervals)
     stopLoader();
     let again = true;
     let words = []
@@ -31,7 +30,7 @@ const configFromFrequencies = async (path, outputFile = "config-" + new Date().g
         answers = await prompt([{
             type: 'checkbox',
             name: 'interval',
-            message: message,
+            message: cffMessInterval(intervals),
             choices: cffMessIntervalValues(intervals, answers.minPercent)
         }])
 
@@ -50,6 +49,16 @@ const configFromFrequencies = async (path, outputFile = "config-" + new Date().g
                 words.push(value)
             }
         }
+        updateTotals(intervals)
+        answers = await prompt([{
+            type: 'checkbox',
+            name: 'interval',
+            message: cffMessIntervalSuppr(intervals),
+            choices: cffMessIntervalValues(intervals, answers.minPercent)
+        }])
+        intervals = intervals.filter(item=>{
+            return !answers.includes(item.frequency);
+        })
         updateTotals(intervals)
     } while (intervals.intervals.length > 0 && (await prompt([{
         type: 'confirm',
@@ -144,10 +153,18 @@ const findIntervalsFromFrequencies = (frequencies, removeNumeric) => {
 }
 
 const cffMessInterval = (intervals) => {
-    let message = "Here are the nb for values found for each frequencies.\n"
+    let message = "Here are values or nb of values found for each frequencies.\n"
 
     message += "with a total of " + intervals.total + " (" + intervals.megaTotal + ") values"
     message += "Wich frequencies do you wan to choose your values from ?"
+    return message;
+}
+
+const cffMessIntervalSuppr = (intervals) => {
+    let message = "Here are values or nb of values found for each frequencies.\n"
+
+    message += "with a total of " + intervals.total + " (" + intervals.megaTotal + ") values"
+    message += "Wich values do you want to remove as they are NOT part of a path ?"
     return message;
 }
 
