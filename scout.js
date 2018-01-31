@@ -1,11 +1,10 @@
-const fs = require('fs');
-const https = require('https');
+const {messager, returnNode, returnFile, writeFile} = require('./genericUtils.js')
 
 const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxReject = 20, maxExampleValues = 20) => {
     let preparedConf = {}
-    console.log("Verificating and preparing options : ")
-    let baseConf = isUrl ? await returnNode(confPath) : require(confPath);
-    console.log('\t config is retrieved, checking...')
+    messager("Checking and preparing options", 'step')
+    messager('retrieving config ', 'loader')
+    let baseConf = isUrl ? await returnNode(confPath) : await returnFile(confPath);
     //verifs args and config
 
     if (basePath) {
@@ -19,7 +18,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
     } else {
         throw 'No source found to analyse, see commands options to give one'
     }
-    console.log('\t base location is present in config')
+    messager('base location is present in config : '+(preparedConf.basePath ? preparedConf.basePath : preparedConf.baseUrl))
 
     preparedConf.dataTypes = baseConf.dataTypes ? baseConf.dataTypes : [
         "string",
@@ -32,7 +31,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
     } else {
         throw 'At least some pathPart must be given in the options files to generate a meaningful analyse. Soon frequency analysis will be able to generate it automatically'
     }
-    console.log('\t pathParts found, minimal config OK, checking additional infos')
+    messager('pathParts found, minimal config OK, checking additional infos')
 
     preparedConf.constructedId = {}
     if(baseConf.idToConstruct){
@@ -45,7 +44,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
                 preparedConf.constructedId[itc.name] = Object.keys(ids)
             }
         }
-        console.log('\t ids reference constructed')
+        messager('ids reference constructed')
     }
     
 
@@ -57,7 +56,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
                 rejectCount: 0
             };
         }
-        console.log('\t badPaths constructed')
+        messager('badPaths constructed')
     }
     
     
@@ -70,7 +69,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
                 rejectCount: 0
             };
         }
-        console.log('\t nodeOnlyPaths constructed')
+        messager('nodeOnlyPaths constructed')
     }
     
 
@@ -83,7 +82,7 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
                 rejectCount: 0
             };
         }
-        console.log('\t rules constructed')
+        messager('rules constructed')
     }
     
     preparedConf.maxReject = maxReject;
@@ -93,40 +92,53 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
 }
 
 const analysis = async (config) => {
-    console.log("beginning analysis")
+    messager("beginning analysis", 'step')
     let base
+    messager("retrieving json datas", 'loader')
     if (config.basePath) {
         base = require(config.basePath);
     } else if (config.baseUrl) {
         base = await returnNode(config.baseUrl);
     }
 
-    console.log("\t base retrieved, analysing");
+    messager("analysing", 'loader')
     let results = {};
     analyseNode(base, '', results, '', config);
-    console.log("\t finished");
     return results;
 }
 
 const fanalysis = async (path, mode, discardLower, outname="fanalysis-"+new Date().getTime()+".json") => {
-    console.log("beginning frequency analysis")
+    
+    messager("Beginning frequency analysis", 'step');
+    messager("Retrieving datas", 'loader');
     let base
-    if (mode === "local") {
-        base = require(path);
-    } else {
-        base = await returnNode(path);
+    try{
+        if (mode === "local") {
+            base = await returnFile(path);
+        } else {
+            base = await returnNode(path);
+        }
+    }catch(err){
+        messager("An error occured retrieving the file, the process will now exit : "+err, 'error');
+        return
     }
-
-    console.log("\t base retrieved, analysing");
+    messager("base retrieved, analysing", 'loader');
+    messager("that's some beautifuls datas sir");
     let frequencies = {};
     countNodeFrequency(base, frequencies, []);
-    console.log("\t frequencies counted, cleaning lower than "+discardLower+" and exporting results");
-    fs.writeFileSync(outname, JSON.stringify(cleanFrequencies(frequencies, discardLower), null, 4));
-    console.log("\t file "+outname+ " exported successfully");
+    messager("frequencies counted, cleaning lower than "+discardLower+" and exporting results", 'loader');
+    try{
+        let file = await writeFile(outname, JSON.stringify(cleanFrequencies(frequencies, discardLower), null, 4));
+        messager("frequencies analysis file available at : "+file, 'step');
+        return 'ok';
+    }catch(err){
+        messager("An error occured writing the result file, the process will now exit : "+err, 'error');
+        throw new Error('frequency analysis failed...')
+    }
 }
 
-const formatResult = (results, config, outName="brief-"+new Date().getTime()+".json") => {
-
+const formatResult = async (results, config, outName="brief-"+new Date().getTime()+".json") => {
+    messager("formating results",'loader')
     for (let nodeName in results) {
         let node = results[nodeName];
         if (node.props && Object.keys(node.props).length > 0) {
@@ -141,7 +153,14 @@ const formatResult = (results, config, outName="brief-"+new Date().getTime()+".j
     results.rules = config.rules;
     results.nodeOnlyPaths = config.nodeOnlyPaths;
 
-    fs.writeFileSync(outName, JSON.stringify(results, null, 4))
+    try{
+        let file = await writeFile(outName, JSON.stringify(results, null, 4));
+        messager("json analysis file available at : "+file, 'step');
+        return 'ok';
+    }catch(err){
+        messager("An error occured writing the result file, the process will now exit : "+err, 'error');
+        throw new Error('frequency analysis failed...')
+    }
 }
 
 module.exports = { prepareAnalysis, analysis, formatResult, fanalysis }
@@ -184,13 +203,18 @@ const analyseNode = (node, nodeName, results, realFullPath, config) => {
                 }
             }
             if (typeof value === 'string' && value.indexOf("data:image") !== -1) {
-                value = "photo"
+                value = "raw img"
             }
-            if (results[nodeName].props[subNodeName]) {
+            if (results[nodeName] && results[nodeName].props[subNodeName]) {
                 results[nodeName].props[subNodeName].count++;
                 if (!results[nodeName].props[subNodeName].values.includes(value) && results[nodeName].props[subNodeName].values.length < config.maxReject)
                     results[nodeName].props[subNodeName].values.push(value);
             } else {
+                if(!results[nodeName]){
+                    results[nodeName] = {}
+                    results[nodeName].props = {}
+                }
+                
                 results[nodeName].props[subNodeName] = {
                     count: 1,
                     values: []
@@ -215,7 +239,7 @@ const analyseNode = (node, nodeName, results, realFullPath, config) => {
                 analyseNode(subNode, newNodeName, results, realFullPath + '/' + subNodeName, config);
             }
         } else {
-            console.log("Unexcepted node type " + typeof node[subNodeName] + "for " + subNodeName)
+            messager("Unexcepted node type " + typeof node[subNodeName] + "for " + subNodeName)
         }
     }
 }
@@ -262,24 +286,4 @@ const cleanFrequencies = (frequencies, min)=>{
         }
     }
     return results;
-}
-
-//general support function
-function returnNode(url) {
-    return new Promise(function (resolve, reject) {
-        https.get(url, function (res) {
-            var body = '';
-
-            res.on('data', function (chunk) {
-                body += chunk;
-            });
-
-            res.on('end', function () {
-                var datas = JSON.parse(body);
-                resolve(datas)
-            });
-        }).on('error', function (e) {
-            reject(url, e)
-        });
-    })
 }

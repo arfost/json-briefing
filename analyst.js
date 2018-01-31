@@ -1,90 +1,114 @@
-const { prompt, ui } = require('inquirer');
-const fs = require('fs');
+const { prompt } = require('inquirer');
+const {messager, returnNode, returnFile, writeFile} = require('./genericUtils.js')
 
-const configFromFrequencies = async (path, outputFile = "config-" + new Date().getTime()+".json") => {
+const configFromFrequencies = async (path, outputFile = "config-" + new Date().getTime() + ".json") => {
 
     // During processing, update the bottom bar content to display a loader
     // or output a progress bar, etc
-
-    let frequencies = require(path);
-    let answers = await prompt([{
-        type: 'confirm',
-        name: 'numeric',
-        message: 'Do you wan\'t to remove all numeric node from the results ?'
-    }])
-    let stopLoader = allLoader("Processing frequencies")
-    let intervals = findIntervalsFromFrequencies(frequencies, answers.numeric)
-
-    stopLoader();
-    let again = true;
     let words = []
-    do {
-        answers = await prompt([{
+    if (path) {
+        let frequencies = await returnFile(path)
+        let answers = await prompt([{
+            type: 'confirm',
+            name: 'numeric',
+            message: 'Do you wan\'t to remove all numeric node from the results ?'
+        }])
+        messager("Processing frequencies", 'loader')
+        let intervals = findIntervalsFromFrequencies(frequencies, answers.numeric);
+        let again = true;
+        do {
+            messager("Questions")
+            answers = await prompt([{
+                type: 'input',
+                name: 'minPercent',
+                message: 'Discard values representing less than ? percent',
+                validate: answer => {
+                    return !isNaN(Number(answer)) ? true : "Must be a number between 0 and 100"
+                }
+            }])
+            answers = await prompt([{
+                type: 'checkbox',
+                name: 'interval',
+                message: cffMessInterval(intervals),
+                choices: cffMessIntervalValues(intervals, answers.minPercent)
+            }])
+
+            let selected = cleanIntervals(intervals, answers.interval);
+
+            for (let value of selected) {
+                if (Array.isArray(value)) {
+                    answers = await prompt([{
+                        type: 'checkbox',
+                        name: 'multi',
+                        message: 'Wich of the multi value are goods ?',
+                        choices: value
+                    }])
+                    words = [...words, ...answers.multi]
+                } else {
+                    words.push(value)
+                }
+            }
+            updateTotals(intervals)
+            answers = await prompt([{
+                type: 'checkbox',
+                name: 'supprInterval',
+                message: cffMessIntervalSuppr(intervals),
+                choices: cffMessIntervalValues(intervals, answers.minPercent)
+            }])
+            intervals.intervals = intervals.intervals.filter(item => {
+                return !answers.supprInterval.includes(item.frequency);
+            })
+            updateTotals(intervals)
+        } while (intervals.intervals.length > 0 && (await prompt([{
+            type: 'confirm',
+            name: 'continue',
+            message: "Values so far : " + words.join(', ') + "\nDo another pass ?"
+        }])).continue)
+    } else {
+        messager("No frequency file choosed, enter path parts manualy")
+        words = (await prompt([{
             type: 'input',
-            name: 'minPercent',
-            message: 'Discard values representing less than ? percent',
-            validate: answer => {
-                return !isNaN(Number(answer)) ? true : "Must be a number between 0 and 100"
+            name: 'pathParts',
+            message: "Please enter parts of path separated by a coma. \npath /customer/*/adress will become customer,adress\n",
+            validate: parts => {
+                try{
+                    parts.split(',');
+                    return true
+                }catch(err){
+                    return err
+                }
             }
-        }])
-        answers = await prompt([{
-            type: 'checkbox',
-            name: 'interval',
-            message: cffMessInterval(intervals),
-            choices: cffMessIntervalValues(intervals, answers.minPercent)
-        }])
+        }])).pathParts.split(',')
+    }
 
-        let selected = cleanIntervals(intervals, answers.interval);
-
-        for (let value of selected) {
-            if (Array.isArray(value)) {
-                answers = await prompt([{
-                    type: 'checkbox',
-                    name: 'multi',
-                    message: 'Wich of the multi value are goods ?',
-                    choices: value
-                }])
-                words = [...words, ...answers.multi]
-            } else {
-                words.push(value)
-            }
-        }
-        updateTotals(intervals)
-        answers = await prompt([{
-            type: 'checkbox',
-            name: 'interval',
-            message: cffMessIntervalSuppr(intervals),
-            choices: cffMessIntervalValues(intervals, answers.minPercent)
-        }])
-        intervals = intervals.filter(item=>{
-            return !answers.includes(item.frequency);
-        })
-        updateTotals(intervals)
-    } while (intervals.intervals.length > 0 && (await prompt([{
-        type: 'confirm',
-        name: 'continue',
-        message: "Values so far : " + words.join(', ') + "\nDo another pass ?"
-    }])).continue)
-    console.log("All path parts identified, last questions before config file creation")
+    messager("All path parts identified, last questions before config file creation", 'step')
     let url = await prompt([{
         type: 'input',
         name: 'baseUrl',
         message: "Do you wich to add a default URL to this config. Leave empty for no.",
         validate: url => {
-            console.log("verif url : ", url)
             return (url === "" || /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/g.test(url))
         }
     }])
 
-    fs.writeFileSync(outputFile, JSON.stringify({
+    let refuseUnknowValueInRoot = await prompt([{
+        type: 'confirm',
+        name: 'refuseUnknowValueInRoot',
+        message: "Do you wan't to set all unknow path name at root as bad path (if you know there is no dynamic values name at root, you should)"
+    }])
+    messager("Saving config to disk", 'loader')
+    let badPaths = refuseUnknowValueInRoot.refuseUnknowValueInRoot ? ["/*"] : undefined;
+    let file = await writeFile(outputFile, JSON.stringify({
         pathParts: words,
         baseUrl: url.baseUrl === "" ? undefined : url.baseUrl,
+        badPaths: badPaths,
         dataTypes: [
             "string",
             "number",
             "boolean"
         ]
     }, null, 4));
+    messager("Config file creating successfully", 'step')
     /*l*/
 }
 
@@ -199,22 +223,4 @@ const cffValidateInterval = answer => {
     }
 
     return true;
-}
-
-const allLoader = message => {
-    var bar = new ui.BottomBar();
-    let steps = '|/-\\'
-    let step = 0;
-    bar.updateBottomBar(message + " " + steps[step]);
-    let loader = setInterval(() => {
-        step++;
-        if (step === steps.length)
-            step = 0;
-
-        bar.updateBottomBar(message + " " + steps[step]);
-    }, 300)
-    return () => {
-        clearInterval(loader);
-        console.log("\n" + message + " finished");
-    }
 }
