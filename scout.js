@@ -16,7 +16,8 @@ const prepareAnalysis = async (confPath, isUrl = false, basePath, baseUrl, maxRe
     } else if (baseConf.basePath) {
         preparedConf.basePath = baseConf.basePath
     } else {
-        throw 'No source found to analyse, see commands options to give one'
+        messager('No source found to analyse, see commands options to give one, or add one in the config file (see readme)');
+        throw('aborting command')
     }
     messager('base location is present in config : '+(preparedConf.basePath ? preparedConf.basePath : preparedConf.baseUrl))
 
@@ -96,7 +97,7 @@ const analysis = async (config) => {
     let base
     messager("retrieving json datas", 'loader')
     if (config.basePath) {
-        base = require(config.basePath);
+        base = await returnFile(config.basePath);
     } else if (config.baseUrl) {
         base = await returnNode(config.baseUrl);
     }

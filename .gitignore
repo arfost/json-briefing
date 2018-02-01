@@ -3,3 +3,5 @@ brief-*.json
 fanalysis-*.json
 testConf.json
 config-*.json
+conf-*.json
+/build

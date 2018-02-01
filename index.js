@@ -39,7 +39,7 @@ program
     .command('create_config [pathToFrequenciesFile]')
     .alias('cc')
     .option('-o, --outname <name>', 'specify an output file name')
-    .description('Ask a suite of questions to help generate a config file from a frequecy analysis result file.')
+    .description('Ask a suite of questions to help generate a config file, either form scratch or from a frequecy analysis result file.')
     .action((...args) => {
         callAsPromise(confFromFrequencies, args);
     });
@@ -48,11 +48,12 @@ program
 const callAsPromise = (toCall, args) => {
     toCall(...args).then(()=>{process.exit()}).catch(err => {
         console.error(err)
+        process.exit()
     })
 }
 
 const analyseCommand = async (configPath, maxReject, maxExampleValues, cmd) => {
-    let config = await prepareAnalysis(configPath, cmd.distant, cmd.path, cmd.url, maxReject, maxExampleValues);
+    let config = await prepareAnalysis(configPath, cmd.distant, cmd.local, cmd.url, maxReject, maxExampleValues);
     let results = await analysis(config)
     await formatResult(results, config, cmd.outname)
 
