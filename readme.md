@@ -18,13 +18,34 @@ npm install -g json-briefing
 After that, simply invoque it with command.
 
 ```
-generate-json-briefing
+json-briefing
 ```
 
 ```
-generate-json-briefing --help
+json-briefing --help
 ```
-
 will show help infos and how to use it.
 
+
+The commande 
+```
+json-briefing create_config
+```
+Will help you generate a config file to use in analyse after that.
+
+The commande 
+```
+json-briefing f_analyse
+```
+will generate a frequency analysis file to use with create_config use it if you are not sur or the name of the nodes in your file.
+
+The commande 
+```
+json-briefing analyse
+```
+will launch an analyse and generate a rapport.
+
 /!\ It's in early developpement so no public doc, probable bugs, and incomplet features.
+
+Next planning updates : 
+Better doc, more complete config file generation, partial report for lighter and easier to compare result file and more
