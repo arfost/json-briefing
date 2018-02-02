@@ -1,6 +1,6 @@
 {
   "name": "json-briefing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "a simple cli tool witch can generate an analyse file from rules against a json file",
   "main": "index.js",
   "repository": {
